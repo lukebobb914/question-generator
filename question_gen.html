@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Question Generator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#eef3f6;--surface:#fff;--ink:#14213d;--muted:#5b6b82;--line:#cfd9e2;--accent:#0f8b8d;--onaccent:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1626;--surface:#17233a;--ink:#e8eef7;--muted:#9fb0c8;--line:#2b3b57;--accent:#4cc9c4;--onaccent:#04201f}}
+:root[data-theme="dark"]{--bg:#0e1626;--surface:#17233a;--ink:#e8eef7;--muted:#9fb0c8;--line:#2b3b57;--accent:#4cc9c4;--onaccent:#04201f}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:34rem;margin:0 auto;padding:1.5rem 1rem 3rem}
+h1{font-size:2.4rem;font-weight:800;letter-spacing:-.03em;margin:.5rem 0 1.25rem}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1.25rem}
+.seg button,.any{font:inherit;font-weight:600;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:10px;padding:.65rem 1rem;cursor:pointer}
+.seg button[aria-pressed="true"],.any[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);color:var(--accent)}
+.seg button:disabled{opacity:.35;cursor:not-allowed}
+.sl-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.5rem}
+.sl-head b{font-size:1.1rem}.sl-head span{color:var(--muted)}
+#sliderWrap{transition:opacity .2s}
+#sliderWrap.off{opacity:.35}
+input[type=range]{width:100%;accent-color:var(--accent);height:2rem;margin:0}
+input[type=range]:disabled{cursor:not-allowed}
+.ticks{display:flex;justify-content:space-between;color:var(--muted);font-size:.9rem}
+.any{width:100%;margin-top:1rem}
+.btn{font:inherit;font-weight:600;background:var(--accent);color:var(--onaccent);border:0;border-radius:10px;padding:.8rem 1.4rem;cursor:pointer}
+.btn:focus-visible,input:focus-visible,.seg button:focus-visible,.any:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.gen{width:100%;margin-top:.75rem}
+.badge{display:inline-block;font-size:.85rem;font-weight:600;color:var(--accent);border:1.5px solid var(--accent);border-radius:999px;padding:.1rem .7rem;margin-bottom:.75rem}
+.q{font-size:1.5rem;font-weight:600;line-height:1.3;margin:0}
+.empty{color:var(--muted);margin:0}
+.hide{display:none}
+@media (prefers-reduced-motion:reduce){#sliderWrap{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>Question generator</h1>
+
+<div class="card">
+  <div class="seg" role="group" aria-label="Type">
+    <button id="mQ" aria-pressed="true">Questions</button>
+    <button id="mD" aria-pressed="false">Dares</button>
+  </div>
+
+  <div id="sliderWrap">
+    <div class="sl-head"><b id="lvlName">Level 2</b><span id="lvlDesc">Medium</span></div>
+    <input type="range" id="level" min="1" max="3" step="1" value="2" aria-labelledby="lvlName">
+    <div class="ticks"><span>1 Easy</span><span>2 Medium</span><span>3 Hard</span></div>
+  </div>
+
+  <button class="any" id="any" aria-pressed="false">Any (mix everything)</button>
+  <button class="btn gen" id="gen">Generate</button>
+</div>
+
+<div class="card" aria-live="polite">
+  <p class="empty" id="empty">Choose a type and difficulty, then generate.</p>
+  <div id="out" class="hide">
+    <span class="badge" id="badge"></span>
+    <h2 class="q" id="q"></h2>
+  </div>
+</div>
+</main>
+
+<script>
+// ===== BANKS: edit freely. d = difficulty (1-3; 0 = dare shows at every level), q = text =====
+const QUESTIONS = [
+  {d:1,q:"Favorite color?"},
+  {d:1,q:"What’s your favorite animal?"},
+  {d:1,q:"What’s your favorite food/snack/drink?"},
+  {d:1,q:"What emoji do you use way too much?"},
+  {d:1,q:"What’s your favorite song or current song on replay?"},
+  {d:1,q:"What’s something u say way too much?"},
+  {d:1,q:"What is something you’re passionate/into u?"},
+  {d:1,q:"What accent do u like the most, do the impression"},
+  {d:2,q:"If you had to eat one food for rest of your life what would it be?"},
+  {d:2,q:"What are your hobbies? (list min of 3)"},
+  {d:2,q:"If you could have one superpower what would it be?"},
+  {d:2,q:"What’s your MBTI?"},
+  {d:2,q:"If money wasn’t an issue what would be your dream job?"},
+  {d:2,q:"What’s something about you that most people here don’t know?"},
+  {d:2,q:"What’s your biggest fear? (Non physical)"},
+  {d:2,q:"What’s something you wish people understood better about you?"},
+  {d:2,q:"What’s one goal you really want to achieve in the next 5 years?"},
+  {d:2,q:"What kind of person do you feel most comfortable around? Describe person"},
+  {d:2,q:"Do you fall for people easily or slowly?"},
+  {d:2,q:"When do you feel closest to God?"},
+  {d:2,q:"What’s something small that instantly makes your day better?"},
+  {d:2,q:"What’s one way your faith has changed you?"},
+  {d:2,q:"If you could give your younger self one sentence of advice, what would it be?"},
+  {d:2,q:"In what areas have u experienced most growth in?"},
+  {d:2,q:"What was ur first impression of…"},
+  {d:3,q:"What are the top 3 qualities you look for in a potential partner?"},
+  {d:3,q:"Appearance traits look for in a person"},
+  {d:3,q:"Who do you want to get to know more at the conference?"},
+  {d:3,q:"What is your love language?"},
+  {d:3,q:"What was the best thing that happened to you this year?"},
+  {d:3,q:"What was the most challenging thing that happened to you this year?"},
+  {d:3,q:"What is the most significant thing you’ve learned so far at WC?"},
+  {d:3,q:"Who here is closest to your ideal type?"},
+  {d:3,q:"What’s the stupidest thing u have ever done for a girl?"},
+  {d:3,q:"What’s something you’re praying for right now?"},
+  {d:3,q:"Describe your first crush (physical/non phys)"},
+  {d:3,q:"What’s ur first impression of me…and now"},
+  {d:3,q:"What’s one thing that makes u instantly fall in love with someone?"},
+  {d:3,q:"What’s a red flag you ignored once but never will again?"},
+  {d:3,q:"Have you ever liked someone but never told them? (Most recent)"},
+  {d:3,q:"Confession, what u did and outcome"},
+  {d:3,q:"What’s a compliment you like getting?"},
+  {d:3,q:"Biggest fear about being in a relationship"},
+  {d:3,q:"What emotions are hard to express?"},
+  {d:3,q:"Most embarrassing moments (eg. Crush)"},
+  {d:3,q:"Has anyone confessed to u and describe what happened"},
+  {d:3,q:"Something that u want ppl to know about u"},
+  {d:3,q:"How did u hear God speaking to you? What did he say?"},
+  {d:3,q:"What are u insecure about?"},
+  {d:3,q:"What do u judge about a person when u try not to?"},
+  {d:3,q:"What are u scared about that ppl will judge u for?"},
+  {d:3,q:"Attracted to person at WC, describe what happened"},
+  {d:3,q:"What is something I prev put ur worth in that was not God?"}
+];
+const DARES = [
+  {d:0,q:"Loser has to do a dance that winner picks for 5 seconds (e.g. dragon boat dance)"},
+  {d:0,q:"Loser has to do 10 pushups"},
+  {d:0,q:"Go on YT or Insta FYP"},
+  {d:0,q:"Send IG request"},
+  {d:0,q:"Show the nth last photo you’ve taken"}
+];
+const LEVELS = {1:["Level 1","Easy"],2:["Level 2","Medium"],3:["Level 3","Hard"]};
+// ==============================================================
+
+const $ = id => document.getElementById(id);
+let mode = "q", anyLevel = false;
+const bags = {}; // shuffled draw pile per mode + level, so items don't repeat until the pile is used up
+
+function draw(){
+  const level = +$("level").value;
+  const key = anyLevel ? "any" : mode + level;
+  if (!bags[key] || !bags[key].length) {
+    const tag = (arr, t) => arr.map(x => ({...x, t}));
+    const bank = anyLevel ? [...tag(QUESTIONS, "q"), ...tag(DARES, "d")] : tag(mode === "q" ? QUESTIONS : DARES, mode);
+    const pool = bank.filter(x => anyLevel || x.d === 0 || x.d === level);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    bags[key] = pool;
+  }
+  return bags[key].pop();
+}
+
+function updateLabel(){
+  const l = +$("level").value;
+  $("lvlName").textContent = anyLevel ? "Any level" : LEVELS[l][0];
+  $("lvlDesc").textContent = anyLevel ? "Questions and dares, all levels" : LEVELS[l][1];
+}
+
+function setMode(m){
+  mode = m;
+  $("mQ").setAttribute("aria-pressed", String(m === "q"));
+  $("mD").setAttribute("aria-pressed", String(m === "d"));
+}
+
+function toggleAny(){
+  anyLevel = !anyLevel;
+  $("any").setAttribute("aria-pressed", String(anyLevel));
+  $("level").disabled = anyLevel;
+  $("mQ").disabled = $("mD").disabled = anyLevel;
+  $("sliderWrap").classList.toggle("off", anyLevel);
+  updateLabel();
+}
+
+function generate(){
+  const item = draw();
+  if (!item) { $("empty").textContent = "Nothing at this level yet. Add some to the bank."; $("empty").classList.remove("hide"); $("out").classList.add("hide"); return; }
+  $("empty").classList.add("hide"); $("out").classList.remove("hide");
+  $("badge").textContent = item.d === 0 ? "Dare" : `${item.t === "q" ? "Question" : "Dare"} · ${LEVELS[item.d][0]} · ${LEVELS[item.d][1]}`;
+  $("q").textContent = item.q;
+}
+
+$("mQ").onclick = () => setMode("q");
+$("mD").onclick = () => setMode("d");
+$("any").onclick = toggleAny;
+$("level").oninput = updateLabel;
+$("gen").onclick = generate;
+updateLabel();
+</script>
+</body>
+</html>
